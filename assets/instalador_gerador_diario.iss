@@ -1,5 +1,5 @@
 #define MyAppName "Gerador de Diário de Obras"
-#define MyAppVersion "1.2.1"
+#define MyAppVersion "1.3.1"
 #define MyAppPublisher "Assessoria Tech"
 #define MyAppExeName "GeradorDiarioObra.exe"
 #define MyAppFolder "GeradorDiarioObra"
@@ -15,7 +15,7 @@ DisableProgramGroupPage=yes
 DisableDirPage=no
 AllowNoIcons=yes
 OutputDir=instalador
-OutputBaseFilename=Setup_GeradorDiarioObra_v1_2_1
+OutputBaseFilename=Setup_GeradorDiarioObra_v1_3_1
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -39,8 +39,8 @@ Name: "{localappdata}\GeradorDiarioObra"
 Name: "{localappdata}\GeradorDiarioObra\logs"
 
 [Files]
-Source: "dist\GeradorDiarioObra.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "templates\modelopadrao.docx"; DestDir: "{app}\templates"; Flags: ignoreversion
+Source: "..\dist\GeradorDiarioObra.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\templates\modelopadrao.docx"; DestDir: "{app}\templates"; Flags: ignoreversion
 Source: "icone.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
