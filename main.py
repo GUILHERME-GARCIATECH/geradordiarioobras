@@ -135,6 +135,45 @@ def listar_obras(caminho_excel: str | Path | None = None) -> list[str]:
 
     return sorted(obras)
 
+def analisar_periodo_obra(
+    obra: str,
+    data_inicio_txt: str,
+    data_fim_txt: str,
+    caminho_excel: str | Path | None = None,
+) -> dict:
+    data_inicio = datetime.strptime(data_inicio_txt, "%d/%m/%Y").date()
+    data_fim = datetime.strptime(data_fim_txt, "%d/%m/%Y").date()
+
+    if data_inicio > data_fim:
+        raise ValueError("A data inicial não pode ser maior que a data final.")
+
+    caminho_excel_final = resolver_caminho_excel(caminho_excel)
+    workbook = carregar_workbook(caminho_excel_final)
+
+    respostas = ler_aba_como_dicts(workbook, NOME_ABA_RESPOSTAS)
+    cadastros = ler_aba_como_dicts(workbook, NOME_ABA_CADASTRO)
+
+    registros_obra = filtrar_por_obra(respostas, obra)
+    registros_periodo = filtrar_por_periodo(registros_obra, data_inicio, data_fim)
+    duplicatas = detectar_duplicatas_por_chave(registros_periodo)
+    registros_por_data = agrupar_registros_por_data(registros_periodo) if registros_periodo else {}
+
+    cadastro_obra = None
+    if registros_obra:
+        cadastro_obra = buscar_cadastro_obra(cadastros, registros_obra[0].get("obra", obra))
+
+    return {
+        "obra": obra,
+        "periodo": f"{data_inicio_txt} a {data_fim_txt}",
+        "total_registros": len(registros_periodo),
+        "total_dias": len(registros_por_data),
+        "total_duplicidades": len(duplicatas),
+        "datas_com_duplicidade": [data.strftime("%d/%m/%Y") for (_, data) in duplicatas.keys()],
+        "contratante": (cadastro_obra or {}).get("contratante", ""),
+        "objeto": (cadastro_obra or {}).get("objeto", ""),
+        "tem_registros": bool(registros_periodo),
+    }
+
 
 def gerar_relatorio(
     obra: str,
@@ -149,6 +188,10 @@ def gerar_relatorio(
 ) -> Path:
     data_inicio = datetime.strptime(data_inicio_txt, "%d/%m/%Y").date()
     data_fim = datetime.strptime(data_fim_txt, "%d/%m/%Y").date()
+
+    if data_inicio > data_fim:
+        raise ValueError("A data inicial não pode ser maior que a data final.")
+
     periodo_texto = f"{data_inicio_txt} a {data_fim_txt}"
 
     caminho_excel_final = resolver_caminho_excel(caminho_excel)
