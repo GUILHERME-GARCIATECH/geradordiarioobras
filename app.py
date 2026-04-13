@@ -23,7 +23,7 @@ except Exception:
 
 
 APP_NOME = "GeradorDiarioObra"
-VERSAO_APP = "1.3.1"
+VERSAO_APP = "1.3.2"
 TEMPLATE_PADRAO_REL = Path("templates") / "modelopadrao.docx"
 
 
@@ -158,8 +158,8 @@ def carregar_obras() -> list[str]:
                 obras = listar_obras(caminho_excel_resolvido)
                 if obras:
                     return obras
-            except Exception:
-                pass
+            except Exception as e:
+                registrar_erro("Erro ao carregar obras do Excel", e)
 
     if isinstance(obras_fixas, list):
         obras_validas = [str(o).strip() for o in obras_fixas if str(o).strip()]
@@ -218,25 +218,6 @@ def limpar_resumo() -> None:
     resumo_objeto_var.set("—")
 
 
-def recarregar_obras(manter_atual: bool = True) -> None:
-    global config
-    selecionada = combo_obra.get().strip()
-
-    config = carregar_config()
-    obras = carregar_obras()
-    combo_obra["values"] = obras
-
-    if manter_atual and selecionada and selecionada in obras:
-        combo_obra.set(selecionada)
-    elif obras:
-        combo_obra.current(0)
-    else:
-        combo_obra.set("")
-
-    atualizar_status_config()
-    atualizar_resumo()
-
-
 def validar_campos() -> str | None:
     obra = combo_obra.get().strip()
     data_inicio = get_date_value(entrada_inicio)
@@ -255,6 +236,14 @@ def validar_campos() -> str | None:
     if not data_assinatura:
         return "Informe a data da assinatura."
     return None
+
+
+def atualizar_status_acao() -> None:
+    erro_validacao = validar_campos()
+    if erro_validacao:
+        status_execucao_var.set(erro_validacao)
+    else:
+        status_execucao_var.set("Tudo certo. Você já pode gerar o diário.")
 
 
 def atualizar_preview_nome(*_args) -> None:
@@ -313,6 +302,61 @@ def atualizar_resumo(*_args) -> None:
         resumo_status_var.set(f"Não foi possível montar o resumo: {e}")
 
 
+def aplicar_alteracoes(*_args) -> None:
+    atualizar_resumo()
+    atualizar_status_acao()
+
+
+def aplicar_assinatura(*_args) -> None:
+    atualizar_preview_nome()
+    atualizar_status_acao()
+
+
+def desfocar_campos(event) -> None:
+    try:
+        widget = event.widget
+        classe = widget.winfo_class()
+    except Exception:
+        return
+
+    classes_editaveis = {
+        "TEntry",
+        "Entry",
+        "Text",
+        "TCombobox",
+        "Combobox",
+        "DateEntry",
+        "TSpinbox",
+        "Spinbox",
+    }
+
+    if classe not in classes_editaveis:
+        try:
+            janela.focus_set()
+        except Exception:
+            pass
+        aplicar_alteracoes()
+
+
+def recarregar_obras(manter_atual: bool = True) -> None:
+    global config
+    selecionada = combo_obra.get().strip()
+
+    config = carregar_config()
+    obras = carregar_obras()
+    combo_obra["values"] = obras
+
+    if manter_atual and selecionada and selecionada in obras:
+        combo_obra.set(selecionada)
+    elif obras:
+        combo_obra.current(0)
+    else:
+        combo_obra.set("")
+
+    atualizar_status_config()
+    aplicar_alteracoes()
+
+
 def set_loading(ativo: bool, texto: str = "") -> None:
     estado = "disabled" if ativo else "normal"
 
@@ -328,7 +372,7 @@ def set_loading(ativo: bool, texto: str = "") -> None:
         botao_gerar.configure(text="Gerando...", bootstyle="warning")
     else:
         progresso.stop()
-        status_execucao_var.set("Pronto para gerar.")
+        atualizar_status_acao()
         botao_gerar.configure(text="Gerar diário", bootstyle="success")
 
 
@@ -615,8 +659,8 @@ def executar() -> None:
 
 janela = tb.Window(themename="flatly")
 janela.title("Gerador de Diário de Obras")
-janela.geometry("960x720")
-janela.minsize(900, 680)
+janela.geometry("960x680")
+janela.minsize(900, 620)
 
 style = janela.style
 style.configure("Titulo.TLabel", font=("Segoe UI", 20, "bold"))
@@ -628,7 +672,13 @@ style.configure("Status.TLabel", font=("Segoe UI", 10))
 container = ttk.Frame(janela, padding=22)
 container.pack(fill=BOTH, expand=YES)
 
-topo = ttk.Frame(container)
+rodape = ttk.Frame(container)
+rodape.pack(side=BOTTOM, fill=X)
+
+conteudo = ttk.Frame(container)
+conteudo.pack(side=TOP, fill=BOTH, expand=YES)
+
+topo = ttk.Frame(conteudo)
 topo.pack(fill=X, pady=(0, 18))
 
 ttk.Label(topo, text="Gerador de Diário de Obras", style="Titulo.TLabel").pack(side=LEFT)
@@ -648,13 +698,13 @@ botao_config = ttk.Button(
 botao_config.pack(side=RIGHT)
 
 ttk.Label(
-    container,
+    conteudo,
     text="Preencha os dados principais, confira o resumo e gere o diário.",
     style="Subtitulo.TLabel",
     bootstyle="secondary",
 ).pack(anchor=W, pady=(0, 14))
 
-card_dados = ttk.Labelframe(container, text="Dados do diário", padding=18, bootstyle="secondary")
+card_dados = ttk.Labelframe(conteudo, text="Dados do diário", padding=18, bootstyle="secondary")
 card_dados.pack(fill=X, pady=(0, 14))
 
 linha1 = ttk.Frame(card_dados)
@@ -703,7 +753,7 @@ entrada_assinatura = DateEntry(
 )
 entrada_assinatura.grid(row=1, column=2, sticky=W)
 
-card_status = ttk.Labelframe(container, text="Status da configuração", padding=18, bootstyle="info")
+card_status = ttk.Labelframe(conteudo, text="Status da configuração", padding=18, bootstyle="info")
 card_status.pack(fill=X, pady=(0, 14))
 
 linha_status = ttk.Frame(card_status)
@@ -725,8 +775,8 @@ bloco_info(linha_status, "Template", texto_template_var)
 bloco_info(linha_status, "PDF", texto_pdf_var)
 bloco_info(linha_status, "Nome sugerido", texto_nome_arquivo_var)
 
-card_resumo = ttk.Labelframe(container, text="Resumo", padding=18, bootstyle="primary")
-card_resumo.pack(fill=BOTH, expand=YES, pady=(0, 14))
+card_resumo = ttk.Labelframe(conteudo, text="Resumo", padding=18, bootstyle="primary")
+card_resumo.pack(fill=X, pady=(0, 12))
 
 grid_resumo = ttk.Frame(card_resumo)
 grid_resumo.pack(fill=X)
@@ -768,13 +818,10 @@ ttk.Label(
     bootstyle="secondary",
 ).pack(anchor=W)
 
-rodape = ttk.Frame(container)
-rodape.pack(fill=X)
-
-status_execucao_var = tk.StringVar(value="Pronto para gerar.")
+status_execucao_var = tk.StringVar(value="Preencha os campos obrigatórios para gerar o diário.")
 
 progresso = ttk.Progressbar(rodape, mode="indeterminate", bootstyle="success-striped")
-progresso.pack(fill=X, pady=(0, 10))
+progresso.pack(fill=X, pady=(8, 10))
 
 linha_acao = ttk.Frame(rodape)
 linha_acao.pack(fill=X)
@@ -801,15 +848,24 @@ widgets_bloqueaveis = [
     botao_config,
 ]
 
-entrada_medicao.bind("<KeyRelease>", atualizar_resumo)
-combo_obra.bind("<<ComboboxSelected>>", atualizar_resumo)
+entrada_medicao.bind("<KeyRelease>", aplicar_alteracoes)
+entrada_medicao.bind("<Return>", aplicar_alteracoes)
+
+combo_obra.bind("<<ComboboxSelected>>", aplicar_alteracoes)
+combo_obra.bind("<Return>", aplicar_alteracoes)
 
 try:
-    entrada_inicio.entry.bind("<FocusOut>", atualizar_resumo)
-    entrada_fim.entry.bind("<FocusOut>", atualizar_resumo)
-    entrada_assinatura.entry.bind("<FocusOut>", atualizar_preview_nome)
+    entrada_inicio.entry.bind("<FocusOut>", aplicar_alteracoes)
+    entrada_fim.entry.bind("<FocusOut>", aplicar_alteracoes)
+    entrada_assinatura.entry.bind("<FocusOut>", aplicar_assinatura)
+
+    entrada_inicio.entry.bind("<Return>", aplicar_alteracoes)
+    entrada_fim.entry.bind("<Return>", aplicar_alteracoes)
+    entrada_assinatura.entry.bind("<Return>", aplicar_assinatura)
 except Exception:
     pass
+
+janela.bind_all("<Button-1>", desfocar_campos, add="+")
 
 atualizar_status_config()
 recarregar_obras(manter_atual=False)
