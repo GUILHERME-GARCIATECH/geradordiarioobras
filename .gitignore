@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual env
+.venv/
+
+# Build / dist
+build/
+dist/
+instalador/
+
+# Logs
+*.log
+logs/
+
+# Arquivos gerados
+*.docx
+*.pdf
+saida/
+
+# Dados locais (cuidado)
+dados/
+
+# IDE
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db

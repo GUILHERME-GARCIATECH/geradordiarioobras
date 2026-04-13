@@ -1,0 +1,5 @@
+Excluir a build antiga e recompilar o .exe principal
+rmdir /s /q build
+rmdir /s /q dist
+del GeradorDiarioObra.spec
+python -m PyInstaller --onefile --noconsole --name GeradorDiarioObra --collect-all openpyxl --collect-all docxtpl --hidden-import docx --hidden-import win32com --hidden-import pythoncom --hidden-import pywintypes app.py
