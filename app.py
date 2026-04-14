@@ -311,33 +311,6 @@ def aplicar_assinatura(*_args) -> None:
     atualizar_preview_nome()
     atualizar_status_acao()
 
-
-def desfocar_campos(event) -> None:
-    try:
-        widget = event.widget
-        classe = widget.winfo_class()
-    except Exception:
-        return
-
-    classes_editaveis = {
-        "TEntry",
-        "Entry",
-        "Text",
-        "TCombobox",
-        "Combobox",
-        "DateEntry",
-        "TSpinbox",
-        "Spinbox",
-    }
-
-    if classe not in classes_editaveis:
-        try:
-            janela.focus_set()
-        except Exception:
-            pass
-        aplicar_alteracoes()
-
-
 def recarregar_obras(manter_atual: bool = True) -> None:
     global config
     selecionada = combo_obra.get().strip()
@@ -550,7 +523,6 @@ def abrir_configuracoes() -> None:
     frame_cfg.columnconfigure(2, weight=0)
     frame_cfg.columnconfigure(3, weight=0)
     frame_cfg.rowconfigure(8, weight=1)
-
 
 def finalizar_geracao_sucesso(caminho_final: Path) -> None:
     set_loading(False)
@@ -848,6 +820,14 @@ widgets_bloqueaveis = [
     botao_config,
 ]
 
+widgets_bloqueaveis = [
+    combo_obra,
+    entrada_medicao,
+    botao_gerar,
+    botao_config,
+]
+
+# Atualiza quando faz sentido, sem recalcular tudo a cada clique da janela
 entrada_medicao.bind("<KeyRelease>", aplicar_alteracoes)
 entrada_medicao.bind("<Return>", aplicar_alteracoes)
 
@@ -865,7 +845,8 @@ try:
 except Exception:
     pass
 
-janela.bind_all("<Button-1>", desfocar_campos, add="+")
+# REMOVIDO:s
+# janela.bind_all("<Button-1>", desfocar_campos, add="+")
 
 atualizar_status_config()
 recarregar_obras(manter_atual=False)
