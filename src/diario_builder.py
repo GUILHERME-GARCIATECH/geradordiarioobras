@@ -96,13 +96,13 @@ def formatar_data_extenso(data_str: str) -> str:
 
 def formatar_data_com_dia_semana(data_ref: date) -> str:
     dias_semana = [
-        "Segunda-feira",
-        "Terça-feira",
-        "Quarta-feira",
-        "Quinta-feira",
-        "Sexta-feira",
-        "Sábado",
-        "Domingo",
+        "segunda-feira",
+        "terça-feira",
+        "quarta-feira",
+        "quinta-feira",
+        "sexta-feira",
+        "sábado",
+        "domingo",
     ]
 
     dia_semana = dias_semana[data_ref.weekday()]
