@@ -301,7 +301,6 @@ def atualizar_resumo(*_args) -> None:
         limpar_resumo()
         resumo_status_var.set(f"Não foi possível montar o resumo: {e}")
 
-
 def aplicar_alteracoes(*_args) -> None:
     atualizar_resumo()
     atualizar_status_acao()
@@ -311,13 +310,119 @@ def aplicar_assinatura(*_args) -> None:
     atualizar_preview_nome()
     atualizar_status_acao()
 
+
+def capturar_estado_form() -> tuple[str, str, str, str, str]:
+    return (
+        combo_obra.get().strip(),
+        get_date_value(entrada_inicio),
+        get_date_value(entrada_fim),
+        entrada_medicao.get().strip(),
+        get_date_value(entrada_assinatura),
+    )
+
+
+ultimo_estado_form = None
+
+
+def tirar_foco_do_campo() -> None:
+    try:
+        janela.focus_set()
+        janela.update_idletasks()
+    except Exception:
+        pass
+
+
+def aplicar_alteracoes_se_mudou(*_args) -> None:
+    global ultimo_estado_form
+
+    estado_atual = capturar_estado_form()
+    if estado_atual == ultimo_estado_form:
+        return
+
+    ultimo_estado_form = estado_atual
+    aplicar_alteracoes()
+
+
+def aplicar_assinatura_se_mudou(*_args) -> None:
+    global ultimo_estado_form
+
+    estado_atual = capturar_estado_form()
+    if estado_atual == ultimo_estado_form:
+        return
+
+    ultimo_estado_form = estado_atual
+    aplicar_assinatura()
+
+
+def confirmar_alteracoes_e_sair(*_args) -> str:
+    aplicar_alteracoes_se_mudou()
+    tirar_foco_do_campo()
+    return "break"
+
+
+def confirmar_assinatura_e_sair(*_args) -> str:
+    aplicar_assinatura_se_mudou()
+    tirar_foco_do_campo()
+    return "break"
+
+
+def atualizar_medicao_local(*_args) -> None:
+    atualizar_preview_nome()
+    atualizar_status_acao()
+
+def clique_fora_campos(event) -> None:
+    try:
+        widget = event.widget
+        classe = widget.winfo_class()
+    except Exception:
+        return
+
+    classes_editaveis = {
+        "TEntry",
+        "Entry",
+        "Text",
+        "TCombobox",
+        "Combobox",
+        "DateEntry",
+        "TSpinbox",
+        "Spinbox",
+    }
+
+    # Se clicou em campo editável, deixa o comportamento normal
+    if classe in classes_editaveis:
+        return
+
+    # Se clicou em botão, também não mexe no foco aqui
+    if "button" in classe.lower():
+        return
+
+    def finalizar():
+        try:
+            aplicar_alteracoes_se_mudou()
+        except Exception:
+            pass
+
+        try:
+            janela.focus_set()
+        except Exception:
+            pass
+
+    janela.after_idle(finalizar)
+
 def recarregar_obras(manter_atual: bool = True) -> None:
     global config
     selecionada = combo_obra.get().strip()
 
     config = carregar_config()
     obras = carregar_obras()
+
+    combo_obra.configure(state="normal")
+    combo_obra.set("")
+    combo_obra["values"] = ()
+    janela.update_idletasks()
+
     combo_obra["values"] = obras
+    combo_obra.configure(state="readonly")
 
     if manter_atual and selecionada and selecionada in obras:
         combo_obra.set(selecionada)
@@ -372,6 +477,7 @@ def abrir_configuracoes() -> None:
     ttk.Label(frame_cfg, text="Planilha Excel", font=("Segoe UI", 10, "bold")).grid(
         row=1, column=0, sticky="w", pady=(0, 6)
     )
+
     var_excel = tk.StringVar(value=str(config.get("excel_path", "")).strip())
     entry_excel = ttk.Entry(frame_cfg, textvariable=var_excel, width=78)
     entry_excel.grid(row=2, column=0, columnspan=3, sticky="ew", padx=(0, 8), pady=(0, 12))
@@ -389,11 +495,13 @@ def abrir_configuracoes() -> None:
         text="Procurar",
         command=procurar_excel,
         bootstyle="secondary-outline",
+        width=12,
     ).grid(row=2, column=3, sticky="e", pady=(0, 12))
 
     ttk.Label(frame_cfg, text="Template Word", font=("Segoe UI", 10, "bold")).grid(
         row=3, column=0, sticky="w", pady=(0, 6)
     )
+
     var_template = tk.StringVar(value=str(config.get("template_path", "")).strip())
     entry_template = ttk.Entry(frame_cfg, textvariable=var_template, width=78)
     entry_template.grid(row=4, column=0, columnspan=2, sticky="ew", padx=(0, 8), pady=(0, 12))
@@ -414,6 +522,7 @@ def abrir_configuracoes() -> None:
         text="Procurar",
         command=procurar_template,
         bootstyle="secondary-outline",
+        width=12,
     ).grid(row=4, column=2, sticky="ew", padx=(0, 8), pady=(0, 12))
 
     ttk.Button(
@@ -421,6 +530,7 @@ def abrir_configuracoes() -> None:
         text="Usar padrão",
         command=restaurar_template_padrao,
         bootstyle="secondary-outline",
+        width=12,
     ).grid(row=4, column=3, sticky="ew", pady=(0, 12))
 
     usar_excel_var = tk.BooleanVar(value=bool(config.get("usar_obras_do_excel", True)))
@@ -454,18 +564,64 @@ def abrir_configuracoes() -> None:
     txt_obras.grid(row=8, column=0, columnspan=4, sticky="nsew")
     txt_obras.insert("1.0", "\n".join(config.get("obras_fixas", [])))
 
+    # ===== estado atual vs estado inicial =====
+    def ler_estado_config_tela() -> dict:
+        obras_digitadas = txt_obras.get("1.0", "end").splitlines()
+        obras_fixas = [obra.strip() for obra in obras_digitadas if obra.strip()]
+
+        return {
+            "excel_path": var_excel.get().strip(),
+            "template_path": var_template.get().strip() or str(TEMPLATE_PADRAO_REL),
+            "usar_obras_do_excel": bool(usar_excel_var.get()),
+            "assumir_ultimo_duplicado": bool(assumir_ultimo_var.get()),
+            "obras_fixas": obras_fixas,
+        }
+
+    estado_inicial_cfg = ler_estado_config_tela().copy()
+
+    # ===== rodapé =====
     rodape_cfg = ttk.Frame(frame_cfg)
     rodape_cfg.grid(row=9, column=0, columnspan=4, sticky="ew", pady=(18, 0))
 
+    btn_cancelar_cfg = ttk.Button(
+    rodape_cfg,
+    text="Cancelar",
+    command=janela_cfg.destroy,
+    bootstyle="secondary-outline",
+    width=16,
+    )
+    btn_cancelar_cfg.pack(side="right", padx=(12, 0))
+
+    btn_salvar_cfg = ttk.Button(
+        rodape_cfg,
+        text="Salvar configurações",
+        bootstyle="secondary",
+        width=22,
+    )
+    btn_salvar_cfg.pack(side="right", padx=(0, 12))
+
+    def estado_config_alterado() -> bool:
+        return ler_estado_config_tela() != estado_inicial_cfg
+
+    def atualizar_estado_botao_salvar(*_args) -> None:
+        if estado_config_alterado():
+            btn_salvar_cfg.configure(bootstyle="success")
+        else:
+            btn_salvar_cfg.configure(bootstyle="secondary")
+
     def salvar_configuracoes() -> None:
         global config
+        nonlocal estado_inicial_cfg
 
-        excel_txt = var_excel.get().strip()
-        template_txt = var_template.get().strip()
-        usar_excel = usar_excel_var.get()
-        assumir_ultimo = assumir_ultimo_var.get()
-        obras_digitadas = txt_obras.get("1.0", "end").splitlines()
-        obras_fixas = [obra.strip() for obra in obras_digitadas if obra.strip()]
+        novo_estado = ler_estado_config_tela()
+
+        if novo_estado == estado_inicial_cfg:
+            return
+
+        excel_txt = novo_estado["excel_path"]
+        template_txt = novo_estado["template_path"]
+        usar_excel = novo_estado["usar_obras_do_excel"]
+        obras_fixas = novo_estado["obras_fixas"]
 
         if usar_excel and not excel_txt:
             messagebox.showerror("Configuração inválida", "Selecione a planilha Excel.")
@@ -493,36 +649,37 @@ def abrir_configuracoes() -> None:
             )
             return
 
-        config["excel_path"] = excel_txt
-        config["template_path"] = template_txt or str(TEMPLATE_PADRAO_REL)
-        config["usar_obras_do_excel"] = usar_excel
-        config["assumir_ultimo_duplicado"] = assumir_ultimo
-        config["obras_fixas"] = obras_fixas
+        config["excel_path"] = novo_estado["excel_path"]
+        config["template_path"] = novo_estado["template_path"]
+        config["usar_obras_do_excel"] = novo_estado["usar_obras_do_excel"]
+        config["assumir_ultimo_duplicado"] = novo_estado["assumir_ultimo_duplicado"]
+        config["obras_fixas"] = novo_estado["obras_fixas"]
 
         salvar_config(config)
+        estado_inicial_cfg = novo_estado.copy()
         recarregar_obras()
         janela_cfg.destroy()
         messagebox.showinfo("Configurações", "Configurações salvas com sucesso.")
 
-    ttk.Button(
-        rodape_cfg,
-        text="Cancelar",
-        command=janela_cfg.destroy,
-        bootstyle="secondary-outline",
-    ).pack(side="right")
+    btn_salvar_cfg.configure(command=salvar_configuracoes)
 
-    ttk.Button(
-        rodape_cfg,
-        text="Salvar configurações",
-        command=salvar_configuracoes,
-        bootstyle="success",
-    ).pack(side="right", padx=(0, 8))
+    var_excel.trace_add("write", atualizar_estado_botao_salvar)
+    var_template.trace_add("write", atualizar_estado_botao_salvar)
+    usar_excel_var.trace_add("write", atualizar_estado_botao_salvar)
+    assumir_ultimo_var.trace_add("write", atualizar_estado_botao_salvar)
+
+    txt_obras.bind("<KeyRelease>", atualizar_estado_botao_salvar)
+    txt_obras.bind("<FocusOut>", atualizar_estado_botao_salvar)
 
     frame_cfg.columnconfigure(0, weight=1)
     frame_cfg.columnconfigure(1, weight=1)
     frame_cfg.columnconfigure(2, weight=0)
     frame_cfg.columnconfigure(3, weight=0)
     frame_cfg.rowconfigure(8, weight=1)
+    frame_cfg.rowconfigure(9, weight=0)
+
+    atualizar_estado_botao_salvar()
+
 
 def finalizar_geracao_sucesso(caminho_final: Path) -> None:
     set_loading(False)
@@ -683,8 +840,30 @@ linha1 = ttk.Frame(card_dados)
 linha1.pack(fill=X, pady=(0, 10))
 
 ttk.Label(linha1, text="Obra").grid(row=0, column=0, sticky=W, padx=(0, 8))
-combo_obra = ttk.Combobox(linha1, width=48, state="readonly", bootstyle="secondary")
+
+combo_obra = ttk.Combobox(
+    linha1,
+    width=48,
+    state="readonly",
+    bootstyle="secondary",
+)
 combo_obra.grid(row=1, column=0, columnspan=3, sticky=EW, padx=(0, 16))
+
+
+def abrir_dropdown_obra(event=None):
+    try:
+        combo_obra.focus_set()
+        combo_obra.tk.eval(f'ttk::combobox::Post {combo_obra}')
+    except Exception:
+        pass
+    return "break"
+
+
+combo_obra.bind("<Button-1>", abrir_dropdown_obra)
+combo_obra.bind("<space>", abrir_dropdown_obra)
+combo_obra.bind("<Return>", aplicar_alteracoes_se_mudou)
+combo_obra.bind("<<ComboboxSelected>>", aplicar_alteracoes_se_mudou)
+combo_obra.bind("<FocusOut>", aplicar_alteracoes_se_mudou)
 
 ttk.Label(linha1, text="Medição").grid(row=0, column=3, sticky=W, padx=(0, 8))
 entrada_medicao = ttk.Entry(linha1, width=18)
@@ -820,35 +999,28 @@ widgets_bloqueaveis = [
     botao_config,
 ]
 
-widgets_bloqueaveis = [
-    combo_obra,
-    entrada_medicao,
-    botao_gerar,
-    botao_config,
-]
+entrada_medicao.bind("<KeyRelease>", atualizar_medicao_local)
+entrada_medicao.bind("<Return>", confirmar_alteracoes_e_sair)
+entrada_medicao.bind("<FocusOut>", aplicar_alteracoes_se_mudou)
 
-# Atualiza quando faz sentido, sem recalcular tudo a cada clique da janela
-entrada_medicao.bind("<KeyRelease>", aplicar_alteracoes)
-entrada_medicao.bind("<Return>", aplicar_alteracoes)
-
-combo_obra.bind("<<ComboboxSelected>>", aplicar_alteracoes)
-combo_obra.bind("<Return>", aplicar_alteracoes)
+combo_obra.bind("<<ComboboxSelected>>", aplicar_alteracoes_se_mudou)
+combo_obra.bind("<FocusOut>", aplicar_alteracoes_se_mudou)
 
 try:
-    entrada_inicio.entry.bind("<FocusOut>", aplicar_alteracoes)
-    entrada_fim.entry.bind("<FocusOut>", aplicar_alteracoes)
-    entrada_assinatura.entry.bind("<FocusOut>", aplicar_assinatura)
+    entrada_inicio.entry.bind("<Return>", confirmar_alteracoes_e_sair)
+    entrada_fim.entry.bind("<Return>", confirmar_alteracoes_e_sair)
+    entrada_assinatura.entry.bind("<Return>", confirmar_assinatura_e_sair)
 
-    entrada_inicio.entry.bind("<Return>", aplicar_alteracoes)
-    entrada_fim.entry.bind("<Return>", aplicar_alteracoes)
-    entrada_assinatura.entry.bind("<Return>", aplicar_assinatura)
+    entrada_inicio.entry.bind("<FocusOut>", aplicar_alteracoes_se_mudou)
+    entrada_fim.entry.bind("<FocusOut>", aplicar_alteracoes_se_mudou)
+    entrada_assinatura.entry.bind("<FocusOut>", aplicar_assinatura_se_mudou)
 except Exception:
     pass
 
-# REMOVIDO:s
-# janela.bind_all("<Button-1>", desfocar_campos, add="+")
+janela.bind_all("<ButtonRelease-1>", clique_fora_campos, add="+")
 
 atualizar_status_config()
 recarregar_obras(manter_atual=False)
+ultimo_estado_form = capturar_estado_form()
 set_loading(False)
 janela.mainloop()
