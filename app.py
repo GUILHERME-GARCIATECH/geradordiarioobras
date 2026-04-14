@@ -778,10 +778,10 @@ def executar() -> None:
                     pass
                 caminho_final = destino_path
 
-            janela.after(0, lambda: finalizar_geracao_sucesso(Path(caminho_final)))
+            janela.after(0, finalizar_geracao_sucesso, Path(caminho_final))
 
         except Exception as e:
-            janela.after(0, lambda: finalizar_geracao_erro(e))
+            janela.after(0, finalizar_geracao_erro, e)
 
     threading.Thread(target=tarefa, daemon=True).start()
 

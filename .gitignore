@@ -19,7 +19,7 @@ logs/
 *.docx
 *.pdf
 saida/
-
+app.spec
 # Dados locais (cuidado)
 dados/
 

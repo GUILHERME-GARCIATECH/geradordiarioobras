@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from config import (
@@ -33,7 +33,11 @@ def resolver_caminho_base(caminho: str | Path) -> Path:
 
 
 def resolver_caminho_excel(caminho_excel: str | Path | None = None) -> Path:
-    caminho_final = resolver_caminho_base(caminho_excel) if caminho_excel else resolver_caminho_base(ARQUIVO_EXCEL)
+    caminho_final = (
+        resolver_caminho_base(caminho_excel)
+        if caminho_excel
+        else resolver_caminho_base(ARQUIVO_EXCEL)
+    )
 
     if not caminho_final.exists():
         raise FileNotFoundError(f"Arquivo Excel não encontrado:\n{caminho_final}")
@@ -42,7 +46,11 @@ def resolver_caminho_excel(caminho_excel: str | Path | None = None) -> Path:
 
 
 def resolver_caminho_template(caminho_template: str | Path | None = None) -> Path:
-    caminho_final = resolver_caminho_base(caminho_template) if caminho_template else resolver_caminho_base(ARQUIVO_TEMPLATE)
+    caminho_final = (
+        resolver_caminho_base(caminho_template)
+        if caminho_template
+        else resolver_caminho_base(ARQUIVO_TEMPLATE)
+    )
 
     if not caminho_final.exists():
         raise FileNotFoundError(f"Template Word não encontrado:\n{caminho_final}")
@@ -79,6 +87,13 @@ def agrupar_registros_por_data(registros: list[dict], nome_coluna_data: str = "d
             grupos[dt].append(registro)
 
     return dict(sorted(grupos.items(), key=lambda x: x[0]))
+
+
+def gerar_intervalo_datas(inicio, fim):
+    atual = inicio
+    while atual <= fim:
+        yield atual
+        atual += timedelta(days=1)
 
 
 def detectar_duplicatas_por_chave(registros: list[dict]) -> dict:
@@ -135,6 +150,7 @@ def listar_obras(caminho_excel: str | Path | None = None) -> list[str]:
 
     return sorted(obras)
 
+
 def analisar_periodo_obra(
     obra: str,
     data_inicio_txt: str,
@@ -162,11 +178,14 @@ def analisar_periodo_obra(
     if registros_obra:
         cadastro_obra = buscar_cadastro_obra(cadastros, registros_obra[0].get("obra", obra))
 
+    total_dias_periodo = (data_fim - data_inicio).days + 1
+
     return {
         "obra": obra,
         "periodo": f"{data_inicio_txt} a {data_fim_txt}",
         "total_registros": len(registros_periodo),
-        "total_dias": len(registros_por_data),
+        "total_dias": total_dias_periodo,
+        "total_dias_com_registro": len(registros_por_data),
         "total_duplicidades": len(duplicatas),
         "datas_com_duplicidade": [data.strftime("%d/%m/%Y") for (_, data) in duplicatas.keys()],
         "contratante": (cadastro_obra or {}).get("contratante", ""),
@@ -205,29 +224,33 @@ def gerar_relatorio(
     registros_obra = filtrar_por_obra(respostas, obra)
     registros_periodo = filtrar_por_periodo(registros_obra, data_inicio, data_fim)
 
-    if not registros_periodo:
-        raise ValueError("Nenhum registro encontrado para essa obra e período.")
+    if not registros_obra:
+        raise ValueError("Nenhum registro encontrado para essa obra na base.")
 
     duplicatas = detectar_duplicatas_por_chave(registros_periodo)
     if duplicatas and not assumir_ultimo_duplicado:
         raise ValueError("Foram encontradas duplicatas para a mesma obra/data.")
 
-    cadastro_obra = buscar_cadastro_obra(cadastros, registros_periodo[0].get("obra", ""))
+    cadastro_obra = buscar_cadastro_obra(cadastros, registros_obra[0].get("obra", ""))
 
-    registros_por_data = agrupar_registros_por_data(registros_periodo)
+    registros_por_data = agrupar_registros_por_data(registros_periodo) if registros_periodo else {}
     registros_por_data = resolver_duplicatas_amigavel(
         registros_por_data,
         assumir_ultimo=assumir_ultimo_duplicado,
     )
 
-    if not registros_por_data:
-        raise ValueError("Geração cancelada por duplicidade.")
-
     diarios = []
 
-    for data_ref, registros_do_dia in registros_por_data.items():
-        registro_base = registros_do_dia[-1]
-        tarefas_consolidadas = extrair_tarefas(registro_base, MAPA_ETAPAS, limite=9)
+    for data_ref in gerar_intervalo_datas(data_inicio, data_fim):
+        registros_do_dia = registros_por_data.get(data_ref, [])
+
+        if registros_do_dia:
+            registro_base = registros_do_dia[-1]
+            tarefas_consolidadas = extrair_tarefas(registro_base, MAPA_ETAPAS, limite=9)
+            if not tarefas_consolidadas:
+                tarefas_consolidadas = ["Sem atividade"]
+        else:
+            tarefas_consolidadas = ["Sem atividade"]
 
         diario = montar_diario(
             registros_filtrados=registros_do_dia,
