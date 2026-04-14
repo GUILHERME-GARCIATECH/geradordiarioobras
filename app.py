@@ -926,10 +926,39 @@ bloco_info(linha_status, "Template", texto_template_var)
 bloco_info(linha_status, "PDF", texto_pdf_var)
 bloco_info(linha_status, "Nome sugerido", texto_nome_arquivo_var)
 
-card_resumo = ttk.Labelframe(conteudo, text="Resumo", padding=18, bootstyle="primary")
+card_resumo = ttk.Frame(conteudo)
 card_resumo.pack(fill=X, pady=(0, 12))
 
-grid_resumo = ttk.Frame(card_resumo)
+caixa_resumo = tk.Frame(
+    card_resumo,
+    bg="#f4f6f8",
+    highlightbackground="#b8c2cc",
+    highlightthickness=1,
+    bd=0,
+)
+caixa_resumo.pack(fill=X)
+
+# Faixa azul
+topo_resumo = tk.Frame(caixa_resumo, bg="#2f4358", height=40)
+topo_resumo.pack(fill=X)
+topo_resumo.pack_propagate(False)
+
+lbl_topo_resumo = tk.Label(
+    topo_resumo,
+    text="Resumo",
+    bg="#2f4358",
+    fg="white",
+    font=("Segoe UI", 10, "bold"),
+    anchor="w",
+    padx=14,
+)
+lbl_topo_resumo.pack(fill="both", expand=True)
+
+# Corpo
+corpo_resumo = ttk.Frame(caixa_resumo, padding=(18, 18, 18, 16))
+corpo_resumo.pack(fill=X)
+
+grid_resumo = ttk.Frame(corpo_resumo)
 grid_resumo.pack(fill=X)
 
 resumo_obra_var = tk.StringVar(value="—")
@@ -943,9 +972,22 @@ resumo_status_var = tk.StringVar(value="Preencha os campos para visualizar o res
 
 def campo_resumo(parent, titulo: str, var: tk.StringVar, row: int, col: int) -> None:
     bloco = ttk.Frame(parent)
-    bloco.grid(row=row, column=col, sticky=EW, padx=10, pady=8)
-    ttk.Label(bloco, text=titulo, style="InfoTitle.TLabel", bootstyle="secondary").pack(anchor=W)
-    ttk.Label(bloco, textvariable=var, style="InfoValue.TLabel", wraplength=240).pack(anchor=W, pady=(2, 0))
+    bloco.grid(row=row, column=col, sticky="nw", padx=12, pady=10)
+
+    ttk.Label(
+        bloco,
+        text=titulo,
+        style="InfoTitle.TLabel",
+        bootstyle="secondary",
+    ).pack(anchor=W)
+
+    ttk.Label(
+        bloco,
+        textvariable=var,
+        style="InfoValue.TLabel",
+        wraplength=240,
+        justify="left",
+    ).pack(anchor=W, pady=(4, 0))
 
 campo_resumo(grid_resumo, "Obra", resumo_obra_var, 0, 0)
 campo_resumo(grid_resumo, "Período", resumo_periodo_var, 0, 1)
@@ -955,17 +997,18 @@ campo_resumo(grid_resumo, "Duplicidades", resumo_duplicidades_var, 1, 1)
 campo_resumo(grid_resumo, "Contratante", resumo_contratante_var, 1, 2)
 campo_resumo(grid_resumo, "Objeto", resumo_objeto_var, 2, 0)
 
-grid_resumo.columnconfigure(0, weight=1)
-grid_resumo.columnconfigure(1, weight=1)
-grid_resumo.columnconfigure(2, weight=1)
+grid_resumo.columnconfigure(0, weight=1, minsize=230)
+grid_resumo.columnconfigure(1, weight=1, minsize=230)
+grid_resumo.columnconfigure(2, weight=1, minsize=230)
 
-ttk.Separator(card_resumo).pack(fill=X, pady=12)
+ttk.Separator(corpo_resumo).pack(fill=X, pady=(10, 12))
 
 ttk.Label(
-    card_resumo,
+    corpo_resumo,
     textvariable=resumo_status_var,
     style="Status.TLabel",
-    wraplength=820,
+    wraplength=860,
+    justify="left",
     bootstyle="secondary",
 ).pack(anchor=W)
 
