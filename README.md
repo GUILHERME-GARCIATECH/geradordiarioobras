@@ -285,4 +285,10 @@ templates/modelopadrao.docx
 
 ## Licença
 
-Licença ainda não definida.
+Copywriting (c) 2026 ASSESSORIA TECNOLOGIA E GESTÃO \
+Todos os direitos reservados
+
+### Technical Development:
+🧑‍💻GUILHERME GARCIA \
+[Github](https://github.com/GUILHERME-GARCIATECH) \
+[LinkedIn](https://www.linkedin.com/in/guilherme-garciatech)
