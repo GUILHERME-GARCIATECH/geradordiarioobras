@@ -1,5 +1,5 @@
 #define MyAppName "Gerador de Diário de Obras"
-#define MyAppVersion "1.3.1"
+#define MyAppVersion "1.3.2"
 #define MyAppPublisher "Assessoria Tech"
 #define MyAppExeName "GeradorDiarioObra.exe"
 #define MyAppFolder "GeradorDiarioObra"
@@ -9,18 +9,19 @@ AppId={{D7C0DBA5-6C6A-4A91-8D74-9A9D4E9F1101}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\{#MyAppFolder}
+DefaultDirName={localappdata}\Programs\{#MyAppFolder}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 DisableDirPage=no
 AllowNoIcons=yes
 OutputDir=instalador
-OutputBaseFilename=Setup_GeradorDiarioObra_v1_3_1
+OutputBaseFilename=Setup_GeradorDiarioObra_v1_3_2
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=admin
-ArchitecturesInstallIn64BitMode=x64
+PrivilegesRequired=lowest
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 SetupIconFile=icone.ico
 UninstallDisplayIcon={app}\icone.ico
 UsePreviousAppDir=yes

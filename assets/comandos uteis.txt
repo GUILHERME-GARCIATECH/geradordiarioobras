@@ -1,5 +1,0 @@
-Excluir a build antiga e recompilar o .exe principal
-rmdir /s /q build
-rmdir /s /q dist
-del GeradorDiarioObra.spec
-pyinstaller app.py --name GeradorDiarioObra --onefile --noconsole --icon=assets\icone.ico --add-data "templates/modelopadrao.docx;templates"

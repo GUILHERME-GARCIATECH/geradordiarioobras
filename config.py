@@ -13,5 +13,5 @@ MAPA_ETAPAS = {
     "Cobertura": "Cobertura",
     "Instalações": "Instalações",
     "Acabamento": "Acabamento",
-    "Outros": "Outros",
+    "Outros": "outros_procedimentos",
 }

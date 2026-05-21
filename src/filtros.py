@@ -31,12 +31,16 @@ def parse_data(valor) -> date | None:
 
 
 def filtrar_por_obra(registros: list[dict], obra_id_ou_texto: str) -> list[dict]:
-    alvo = obra_id_ou_texto.strip().lower()
+    alvo = str(obra_id_ou_texto or "").strip().lower()
+    if not alvo:
+        return []
 
     resultado = []
     for r in registros:
         obra = str(r.get("obra") or "").strip().lower()
-        if alvo in obra:
+        obra_id = obra.split(" - ", 1)[0].strip()
+
+        if alvo == obra or alvo == obra_id or obra.startswith(f"{alvo} - "):
             resultado.append(r)
 
     return resultado

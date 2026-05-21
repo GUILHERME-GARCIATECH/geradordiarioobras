@@ -5,15 +5,16 @@ from datetime import date
 
 def buscar_cadastro_obra(cadastros: list[dict], obra_texto: str) -> dict | None:
     obra_texto = str(obra_texto or "").strip().lower()
+    obra_texto_id = obra_texto.split(" - ", 1)[0].strip()
 
     for cadastro in cadastros:
         obra_id = str(cadastro.get("obra_id") or "").strip().lower()
         objeto = str(cadastro.get("objeto") or "").strip().lower()
 
-        if obra_id and obra_id in obra_texto:
+        if obra_id and obra_id in {obra_texto, obra_texto_id}:
             return cadastro
 
-        if objeto and objeto in obra_texto:
+        if objeto and objeto == obra_texto:
             return cadastro
 
     return None

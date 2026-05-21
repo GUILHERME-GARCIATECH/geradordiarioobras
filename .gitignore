@@ -1,6 +1,7 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
 
 # Virtual env
 .venv/
@@ -9,22 +10,28 @@ __pycache__/
 build/
 dist/
 instalador/
-GeradorDiarioObra.spec
+assets/instalador/
+app.spec
 
 # Logs
 *.log
 logs/
 
-# Arquivos gerados
+# Arquivos gerados pelo usuario
 *.docx
 *.pdf
 saida/
-app.spec
+
+# Template oficial do app: commit somente depois de remover dados sensiveis.
+!templates/modelopadrao.docx
+
 # Dados locais (cuidado)
+base.xlsx
 dados/
 
 # IDE
 .vscode/
+.idea/
 
 # Sistema
 .DS_Store
